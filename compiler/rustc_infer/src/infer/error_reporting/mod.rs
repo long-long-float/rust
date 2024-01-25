@@ -2393,7 +2393,7 @@ impl<'tcx> TypeErrCtxt<'_, 'tcx> {
                 generic_param_scope = self.tcx.local_parent(generic_param_scope);
             }
 
-            // type_param_sugg_span is (span, has_bounds)
+            // type_param_sugg_span is (span, has_bounds, needs_parentheses)
             let (type_scope, type_param_sugg_span) = match bound_kind {
                 GenericKind::Param(ref param) => {
                     let generics = self.tcx.generics_of(generic_param_scope);
@@ -2403,11 +2403,13 @@ impl<'tcx> TypeErrCtxt<'_, 'tcx> {
                     // We do this to avoid suggesting code that ends up as `T: 'a'b`,
                     // instead we suggest `T: 'a + 'b` in that case.
                     let hir_generics = self.tcx.hir().get_generics(scope).unwrap();
-                    let sugg_span = match hir_generics.bounds_span_for_suggestions(def_id) {
-                        Some(span) => Some((span, true)),
+                    let sugg_span = match hir_generics
+                        .bounds_span_for_suggestions_with_parentheses(def_id)
+                    {
+                        Some((span, needs_parentheses)) => Some((span, true, needs_parentheses)),
                         // If `param` corresponds to `Self`, no usable suggestion span.
                         None if generics.has_self && param.index == 0 => None,
-                        None => Some((self.tcx.def_span(def_id).shrink_to_hi(), false)),
+                        None => Some((self.tcx.def_span(def_id).shrink_to_hi(), false, false)),
                     };
                     (scope, sugg_span)
                 }
@@ -2430,12 +2432,18 @@ impl<'tcx> TypeErrCtxt<'_, 'tcx> {
             let mut suggs = vec![];
             let lt_name = self.suggest_name_region(sub, &mut suggs);
 
-            if let Some((sp, has_lifetimes)) = type_param_sugg_span
+            if let Some((sp, has_lifetimes, needs_parentheses)) = type_param_sugg_span
                 && suggestion_scope == type_scope
             {
                 let suggestion =
                     if has_lifetimes { format!(" + {lt_name}") } else { format!(": {lt_name}") };
-                suggs.push((sp, suggestion))
+
+                if needs_parentheses {
+                    suggs.push((sp.shrink_to_lo(), "(".to_string()));
+                    suggs.push((sp.shrink_to_hi(), format!("){suggestion}")));
+                } else {
+                    suggs.push((sp, suggestion))
+                }
             } else if let GenericKind::Alias(ref p) = bound_kind
                 && let ty::Projection = p.kind(self.tcx)
                 && let DefKind::AssocTy = self.tcx.def_kind(p.def_id)
