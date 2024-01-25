@@ -450,6 +450,23 @@ impl GenericBound<'_> {
         }
     }
 
+    pub fn get_inner_ty(&self) -> Option<&Ty<'_>> {
+        match self {
+            GenericBound::Trait(data, _) => {
+                data.trait_ref.path.segments.first().and_then(|segment| {
+                    segment.args().bindings.first().and_then(|binding| {
+                        if let TypeBindingKind::Equality { term: Term::Ty(ty) } = binding.kind {
+                            Some(ty)
+                        } else {
+                            None
+                        }
+                    })
+                })
+            }
+            _ => None,
+        }
+    }
+
     pub fn span(&self) -> Span {
         match self {
             GenericBound::Trait(t, ..) => t.span,
@@ -647,6 +664,35 @@ impl<'hir> Generics<'hir> {
                 // as we use this method to get a span appropriate for suggestions.
                 let bs = bound.span();
                 bs.can_be_used_for_suggestions().then(|| bs.shrink_to_hi())
+            },
+        )
+    }
+
+    /// Returns bounds span for suggestions.
+    /// If the span needs parentheses, it returns a tuple of a span to be surrounded by parentheses and true.
+    /// e.g. `dyn Future<Output = ()>` with suggestion needs parentheses `(dyn Future<Output = ()>) + 'static`
+    pub fn bounds_span_for_suggestions_with_parentheses(
+        &self,
+        param_def_id: LocalDefId,
+    ) -> Option<(Span, bool)> {
+        self.bounds_for_param(param_def_id).flat_map(|bp| bp.bounds.iter().rev()).find_map(
+            |bound| {
+                let span_for_parentheses = bound.get_inner_ty().and_then(|ty| {
+                    if let TyKind::TraitObject(_, _, TraitObjectSyntax::Dyn) = ty.kind {
+                        let span = ty.span;
+                        span.can_be_used_for_suggestions().then(|| span)
+                    } else {
+                        None
+                    }
+                });
+
+                span_for_parentheses.map_or_else(
+                    || {
+                        let bs = bound.span();
+                        bs.can_be_used_for_suggestions().then(|| (bs.shrink_to_hi(), false))
+                    },
+                    |span| Some((span, true)),
+                )
             },
         )
     }
