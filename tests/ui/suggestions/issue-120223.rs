@@ -1,4 +1,4 @@
-use std::{future::Future};
+use std::future::Future;
 
 pub fn foo<T>(
     executor: impl FnOnce(T) -> dyn Future<Output = ()>,
