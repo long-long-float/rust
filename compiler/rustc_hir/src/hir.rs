@@ -680,7 +680,7 @@ impl<'hir> Generics<'hir> {
         self.bounds_for_param(param_def_id).flat_map(|bp| bp.bounds.iter().rev()).find_map(
             |bound| {
                 let span_for_parentheses = get_inner_ty(bound).and_then(|ty| {
-                    if let TyKind::TraitObject(_, _, TraitObjectSyntax::Dyn) = ty.kind {
+                    if let TyKind::TraitObject(_, _, TraitObjectSyntax::Dyn | TraitObjectSyntax::DynStar) = ty.kind {
                         let span = ty.span;
                         span.can_be_used_for_suggestions().then(|| span)
                     } else {
