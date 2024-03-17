@@ -1,5 +1,5 @@
 error[E0310]: the parameter type `impl FnOnce(T) -> dyn Future<Output = ()>` may not live long enough
-  --> $DIR/issue-120223.rs:6:5
+  --> $DIR/wrap-dyn-in-suggestion-issue-120223.rs:6:5
    |
 LL |     Box::new(executor)
    |     ^^^^^^^^^^^^^^^^^^
