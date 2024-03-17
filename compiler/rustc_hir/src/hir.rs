@@ -442,21 +442,6 @@ impl GenericBound<'_> {
         }
     }
 
-    pub fn get_inner_ty(&self) -> Option<&Ty<'_>> {
-        match self {
-            GenericBound::Trait(data, _) => {
-                let segment = data.trait_ref.path.segments.first()?;
-                let binding = segment.args().bindings.first()?;
-                if let TypeBindingKind::Equality { term: Term::Ty(ty) } = binding.kind {
-                    Some(ty)
-                } else {
-                    None
-                }
-            }
-            _ => None,
-        }
-    }
-
     pub fn span(&self) -> Span {
         match self {
             GenericBound::Trait(t, ..) => t.span,
@@ -679,7 +664,20 @@ impl<'hir> Generics<'hir> {
     ) -> Option<(Span, bool)> {
         self.bounds_for_param(param_def_id).flat_map(|bp| bp.bounds.iter().rev()).find_map(
             |bound| {
-                let span_for_parentheses = bound.get_inner_ty().and_then(|ty| {
+                let inner_ty = match bound {
+                    GenericBound::Trait(data, _) => {
+                        let segment = data.trait_ref.path.segments.first()?;
+                        let binding = segment.args().bindings.first()?;
+                        if let TypeBindingKind::Equality { term: Term::Ty(ty) } = binding.kind {
+                            Some(ty)
+                        } else {
+                            None
+                        }
+                    }
+                    _ => None,
+                };
+
+                let span_for_parentheses = inner_ty.and_then(|ty| {
                     if let TyKind::TraitObject(_, _, TraitObjectSyntax::Dyn) = ty.kind {
                         let span = ty.span;
                         span.can_be_used_for_suggestions().then(|| span)
