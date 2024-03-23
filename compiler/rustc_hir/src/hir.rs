@@ -647,7 +647,10 @@ impl<'hir> Generics<'hir> {
     /// Returns bounds span for suggestions.
     /// If the span including lifetime bound needs parentheses, it returns a span to the open parenthese at the second item.
     /// e.g. `dyn Future<Output = ()> + 'static` needs parentheses `(dyn Future<Output = ()>) + 'static`
-    pub fn bounds_span_for_suggestions(&self, param_def_id: LocalDefId) -> Option<(Span, Option<Span>)> {
+    pub fn bounds_span_for_suggestions(
+        &self,
+        param_def_id: LocalDefId,
+    ) -> Option<(Span, Option<Span>)> {
         fn get_inner_ty<'a, 'b>(bound: &'a GenericBound<'b>) -> Option<&'a Ty<'b>> {
             match bound {
                 GenericBound::Trait(data, _) => {

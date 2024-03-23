@@ -2403,8 +2403,7 @@ impl<'tcx> TypeErrCtxt<'_, 'tcx> {
                     // We do this to avoid suggesting code that ends up as `T: 'a'b`,
                     // instead we suggest `T: 'a + 'b` in that case.
                     let hir_generics = self.tcx.hir().get_generics(scope).unwrap();
-                    let sugg_span = match hir_generics.bounds_span_for_suggestions(def_id)
-                    {
+                    let sugg_span = match hir_generics.bounds_span_for_suggestions(def_id) {
                         Some((span, open_paren_sp)) => Some((span, true, open_paren_sp)),
                         // If `param` corresponds to `Self`, no usable suggestion span.
                         None if generics.has_self && param.index == 0 => None,

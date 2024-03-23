@@ -3275,7 +3275,10 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                                 param.name.ident(),
                             ));
                             let bounds_span = hir_generics.bounds_span_for_suggestions(def_id);
-                            if rcvr_ty.is_ref() && param.is_impl_trait() && let Some((bounds_span, _)) = bounds_span {
+                            if rcvr_ty.is_ref()
+                                && param.is_impl_trait()
+                                && let Some((bounds_span, _)) = bounds_span
+                            {
                                 err.multipart_suggestions(
                                     msg,
                                     candidates.iter().map(|t| {
