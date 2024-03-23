@@ -644,24 +644,10 @@ impl<'hir> Generics<'hir> {
         })
     }
 
-    pub fn bounds_span_for_suggestions(&self, param_def_id: LocalDefId) -> Option<Span> {
-        self.bounds_for_param(param_def_id).flat_map(|bp| bp.bounds.iter().rev()).find_map(
-            |bound| {
-                // We include bounds that come from a `#[derive(_)]` but point at the user's code,
-                // as we use this method to get a span appropriate for suggestions.
-                let bs = bound.span();
-                bs.can_be_used_for_suggestions().then(|| bs.shrink_to_hi())
-            },
-        )
-    }
-
     /// Returns bounds span for suggestions.
-    /// If the span including lifetime bound needs parentheses, it returns a tuple of a span to be surrounded by parentheses and true.
+    /// If the span including lifetime bound needs parentheses, it returns a span to the open parenthese at the second item.
     /// e.g. `dyn Future<Output = ()> + 'static` needs parentheses `(dyn Future<Output = ()>) + 'static`
-    pub fn bounds_span_for_suggestions_with_parentheses(
-        &self,
-        param_def_id: LocalDefId,
-    ) -> Option<(Span, bool)> {
+    pub fn bounds_span_for_suggestions(&self, param_def_id: LocalDefId) -> Option<(Span, Option<Span>)> {
         fn get_inner_ty<'a, 'b>(bound: &'a GenericBound<'b>) -> Option<&'a Ty<'b>> {
             match bound {
                 GenericBound::Trait(data, _) => {
@@ -695,10 +681,12 @@ impl<'hir> Generics<'hir> {
 
                 span_for_parentheses.map_or_else(
                     || {
+                        // We include bounds that come from a `#[derive(_)]` but point at the user's code,
+                        // as we use this method to get a span appropriate for suggestions.
                         let bs = bound.span();
-                        bs.can_be_used_for_suggestions().then(|| (bs.shrink_to_hi(), false))
+                        bs.can_be_used_for_suggestions().then(|| (bs.shrink_to_hi(), None))
                     },
-                    |span| Some((span, true)),
+                    |span| Some((span.shrink_to_hi(), Some(span.shrink_to_lo()))),
                 )
             },
         )

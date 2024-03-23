@@ -2929,7 +2929,7 @@ impl<'tcx> TypeErrCtxt<'_, 'tcx> {
             _ => {}
         };
         // Didn't add an indirection suggestion, so add a general suggestion to relax `Sized`.
-        let (span, separator) = if let Some(s) = generics.bounds_span_for_suggestions(param.def_id)
+        let (span, separator) = if let Some((s, _)) = generics.bounds_span_for_suggestions(param.def_id)
         {
             (s, " +")
         } else {

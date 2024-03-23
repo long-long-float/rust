@@ -2403,13 +2403,12 @@ impl<'tcx> TypeErrCtxt<'_, 'tcx> {
                     // We do this to avoid suggesting code that ends up as `T: 'a'b`,
                     // instead we suggest `T: 'a + 'b` in that case.
                     let hir_generics = self.tcx.hir().get_generics(scope).unwrap();
-                    let sugg_span = match hir_generics
-                        .bounds_span_for_suggestions_with_parentheses(def_id)
+                    let sugg_span = match hir_generics.bounds_span_for_suggestions(def_id)
                     {
-                        Some((span, needs_parentheses)) => Some((span, true, needs_parentheses)),
+                        Some((span, open_paren_sp)) => Some((span, true, open_paren_sp)),
                         // If `param` corresponds to `Self`, no usable suggestion span.
                         None if generics.has_self && param.index == 0 => None,
-                        None => Some((self.tcx.def_span(def_id).shrink_to_hi(), false, false)),
+                        None => Some((self.tcx.def_span(def_id).shrink_to_hi(), false, None)),
                     };
                     (scope, sugg_span)
                 }
@@ -2432,15 +2431,15 @@ impl<'tcx> TypeErrCtxt<'_, 'tcx> {
             let mut suggs = vec![];
             let lt_name = self.suggest_name_region(sub, &mut suggs);
 
-            if let Some((sp, has_lifetimes, needs_parentheses)) = type_param_sugg_span
+            if let Some((sp, has_lifetimes, open_paren_sp)) = type_param_sugg_span
                 && suggestion_scope == type_scope
             {
                 let suggestion =
                     if has_lifetimes { format!(" + {lt_name}") } else { format!(": {lt_name}") };
 
-                if needs_parentheses {
-                    suggs.push((sp.shrink_to_lo(), "(".to_string()));
-                    suggs.push((sp.shrink_to_hi(), format!("){suggestion}")));
+                if let Some(open_paren_sp) = open_paren_sp {
+                    suggs.push((open_paren_sp, "(".to_string()));
+                    suggs.push((sp, format!("){suggestion}")));
                 } else {
                     suggs.push((sp, suggestion))
                 }
