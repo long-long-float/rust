@@ -676,7 +676,6 @@ impl<'hir> Generics<'hir> {
                     ) = ty.kind
                     {
                         ty.span.can_be_used_for_suggestions().then_some(ty.span)
-                        span.can_be_used_for_suggestions().then(|| span)
                     } else {
                         None
                     }
