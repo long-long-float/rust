@@ -675,7 +675,7 @@ impl<'hir> Generics<'hir> {
                         TraitObjectSyntax::Dyn | TraitObjectSyntax::DynStar,
                     ) = ty.kind
                     {
-                        let span = ty.span;
+                        ty.span.can_be_used_for_suggestions().then_some(ty.span)
                         span.can_be_used_for_suggestions().then(|| span)
                     } else {
                         None
