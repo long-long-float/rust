@@ -655,6 +655,9 @@ impl<'hir> Generics<'hir> {
             match bound {
                 GenericBound::Trait(data, _) => {
                     let segment = data.trait_ref.path.segments.first()?;
+                    if segment.args().parenthesized != GenericArgsParentheses::ParenSugar {
+                        return None;
+                    }
                     let binding = segment.args().bindings.first()?;
                     if let TypeBindingKind::Equality { term: Term::Ty(ty) } = binding.kind {
                         Some(ty)
