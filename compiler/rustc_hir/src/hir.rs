@@ -658,12 +658,17 @@ impl<'hir> Generics<'hir> {
                     && segment.args().parenthesized == GenericArgsParentheses::ParenSugar
                     && let [binding] = segment.args().bindings
                     && let TypeBindingKind::Equality { term: Term::Ty(ret_ty) } = binding.kind
-                    && let TyKind::TraitObject(_, _, TraitObjectSyntax::Dyn | TraitObjectSyntax::DynStar) = ret_ty.kind
-                    && ret_ty.span.can_be_used_for_suggestions() {
-                        Some(ret_ty.span)
-                    } else {
-                        None
-                    };
+                    && let TyKind::TraitObject(
+                        _,
+                        _,
+                        TraitObjectSyntax::Dyn | TraitObjectSyntax::DynStar,
+                    ) = ret_ty.kind
+                    && ret_ty.span.can_be_used_for_suggestions()
+                {
+                    Some(ret_ty.span)
+                } else {
+                    None
+                };
 
                 span_for_parentheses.map_or_else(
                     || {
