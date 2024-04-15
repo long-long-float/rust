@@ -651,38 +651,19 @@ impl<'hir> Generics<'hir> {
         &self,
         param_def_id: LocalDefId,
     ) -> Option<(Span, Option<Span>)> {
-        fn get_inner_ty<'a, 'b>(bound: &'a GenericBound<'b>) -> Option<&'a Ty<'b>> {
-            match bound {
-                GenericBound::Trait(data, _) => {
-                    let segment = data.trait_ref.path.segments.first()?;
-                    if segment.args().parenthesized != GenericArgsParentheses::ParenSugar {
-                        return None;
-                    }
-                    let binding = segment.args().bindings.first()?;
-                    if let TypeBindingKind::Equality { term: Term::Ty(ty) } = binding.kind {
-                        Some(ty)
-                    } else {
-                        None
-                    }
-                }
-                _ => None,
-            }
-        }
-
         self.bounds_for_param(param_def_id).flat_map(|bp| bp.bounds.iter().rev()).find_map(
             |bound| {
-                let span_for_parentheses = get_inner_ty(bound).and_then(|ty| {
-                    if let TyKind::TraitObject(
-                        _,
-                        _,
-                        TraitObjectSyntax::Dyn | TraitObjectSyntax::DynStar,
-                    ) = ty.kind
-                    {
-                        ty.span.can_be_used_for_suggestions().then_some(ty.span)
+                let span_for_parentheses = if let Some(trait_ref) = bound.trait_ref()
+                    && let [.., segment] = trait_ref.path.segments
+                    && segment.args().parenthesized == GenericArgsParentheses::ParenSugar
+                    && let [binding] = segment.args().bindings
+                    && let TypeBindingKind::Equality { term: Term::Ty(ret_ty) } = binding.kind
+                    && let TyKind::TraitObject(_, _, TraitObjectSyntax::Dyn | TraitObjectSyntax::DynStar) = ret_ty.kind
+                    && ret_ty.span.can_be_used_for_suggestions() {
+                        Some(ret_ty.span)
                     } else {
                         None
-                    }
-                });
+                    };
 
                 span_for_parentheses.map_or_else(
                     || {
