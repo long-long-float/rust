@@ -14,4 +14,9 @@ pub fn dyn_star_func<T>(
     Box::new(executor) //~ ERROR may not live long enough
 }
 
+pub fn in_ty_param<F: FnOnce() -> &'static dyn std::fmt::Debug>(f: F) {
+    f();
+    f(); //~ ERROR use of moved value
+}
+
 fn main() {}

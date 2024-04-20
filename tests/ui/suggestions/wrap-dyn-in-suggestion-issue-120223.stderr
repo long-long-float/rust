@@ -35,6 +35,27 @@ help: consider adding an explicit lifetime bound
 LL |     executor: impl FnOnce(T) -> (dyn* Future<Output = ()>) + 'static,
    |                                 +                        +++++++++++
 
-error: aborting due to 2 previous errors; 1 warning emitted
+error[E0382]: use of moved value: `f`
+  --> $DIR/wrap-dyn-in-suggestion-issue-120223.rs:19:5
+   |
+LL | pub fn in_ty_param<F: FnOnce() -> &'static dyn std::fmt::Debug>(f: F) {
+   |                                                                 - move occurs because `f` has type `F`, which does not implement the `Copy` trait
+LL |     f();
+   |     --- `f` moved due to this call
+LL |     f();
+   |     ^ value used here after move
+   |
+note: this value implements `FnOnce`, which causes it to be moved when called
+  --> $DIR/wrap-dyn-in-suggestion-issue-120223.rs:18:5
+   |
+LL |     f();
+   |     ^
+help: consider restricting type parameters
+   |
+LL | pub fn in_ty_param<F: FnOnce() -> &'static (dyn std::fmt::Debug) + Copy>(f: F) {
+   |                                            +                   ++++++++
 
-For more information about this error, try `rustc --explain E0310`.
+error: aborting due to 3 previous errors; 1 warning emitted
+
+Some errors have detailed explanations: E0310, E0382.
+For more information about an error, try `rustc --explain E0310`.
