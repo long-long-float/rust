@@ -644,9 +644,16 @@ impl<'hir> Generics<'hir> {
         })
     }
 
-    /// Returns bounds span for suggestions.
-    /// If the span including lifetime bound needs parentheses, it returns a span to the open parenthese at the second item.
-    /// e.g. `dyn Future<Output = ()> + 'static` needs parentheses `(dyn Future<Output = ()>) + 'static`
+    /// Returns a suggestable empty span right after the "final" bound of the generic parameter.
+    ///
+    /// If that bound needs to be wrapped in parentheses to avoid ambiguity with
+    /// subsequent bounds, it also returns an empty span for an open parenthesis
+    /// as the second component.
+    ///
+    /// E.g., adding `+ 'static` after `Fn() -> dyn Future<Output = ()>` or
+    /// `Fn() -> &'static dyn Debug` requires parentheses:
+    /// `Fn() -> (dyn Future<Output = ()>) + 'static` and
+    /// `Fn() -> &'static (dyn Debug) + 'static`, respectively.
     pub fn bounds_span_for_suggestions(
         &self,
         param_def_id: LocalDefId,
