@@ -665,6 +665,7 @@ impl<'hir> Generics<'hir> {
                     && segment.args().parenthesized == GenericArgsParentheses::ParenSugar
                     && let [binding] = segment.args().bindings
                     && let TypeBindingKind::Equality { term: Term::Ty(ret_ty) } = binding.kind
+                    && let ret_ty = ret_ty.peel_refs()
                     && let TyKind::TraitObject(
                         _,
                         _,
