@@ -7,6 +7,7 @@ use crate::errors::{self, CandidateTraitNote, NoAssociatedItem};
 use crate::Expectation;
 use crate::FnCtxt;
 use core::ops::ControlFlow;
+use itertools::Itertools;
 use rustc_ast::ast::Mutability;
 use rustc_attr::parse_confusables;
 use rustc_data_structures::fx::{FxIndexMap, FxIndexSet};
@@ -3295,20 +3296,22 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                                 return;
                             }
 
-                            let (sp, introducer) = if let Some((span, _)) = bounds_span {
-                                (span, Introducer::Plus)
-                            } else if let Some(colon_span) = param.colon_span {
-                                (colon_span.shrink_to_hi(), Introducer::Nothing)
-                            } else if param.is_impl_trait() {
-                                (param.span.shrink_to_hi(), Introducer::Plus)
-                            } else {
-                                (param.span.shrink_to_hi(), Introducer::Colon)
-                            };
+                            let (sp, introducer, open_paren_sp) =
+                                if let Some((span, open_paren_sp)) = bounds_span {
+                                    (span, Introducer::Plus, open_paren_sp)
+                                } else if let Some(colon_span) = param.colon_span {
+                                    (colon_span.shrink_to_hi(), Introducer::Nothing, None)
+                                } else if param.is_impl_trait() {
+                                    (param.span.shrink_to_hi(), Introducer::Plus, None)
+                                } else {
+                                    (param.span.shrink_to_hi(), Introducer::Colon, None)
+                                };
 
-                            err.span_suggestions(
-                                sp,
-                                msg,
-                                candidates.iter().map(|t| {
+                            let mut suggs = vec![];
+
+                            let suggestion = candidates
+                                .iter()
+                                .map(|t| {
                                     format!(
                                         "{} {}",
                                         match introducer {
@@ -3318,9 +3321,17 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                                         },
                                         self.tcx.def_path_str(t.def_id)
                                     )
-                                }),
-                                Applicability::MaybeIncorrect,
-                            );
+                                })
+                                .join("");
+                            if let Some(open_paren_sp) = open_paren_sp {
+                                suggs.push((open_paren_sp, "(".to_string()));
+                                suggs.push((sp, format!("){suggestion}")));
+                            } else {
+                                suggs.push((sp, suggestion));
+                            }
+
+                            err.multipart_suggestion(msg, suggs, Applicability::MaybeIncorrect);
+
                             return;
                         }
                         Node::Item(hir::Item {
