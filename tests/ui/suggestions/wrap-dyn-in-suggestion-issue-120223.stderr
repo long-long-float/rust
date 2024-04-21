@@ -7,6 +7,29 @@ LL | #![feature(dyn_star)]
    = note: see issue #102425 <https://github.com/rust-lang/rust/issues/102425> for more information
    = note: `#[warn(incomplete_features)]` on by default
 
+error[E0277]: the size for values of type `T` cannot be known at compilation time
+  --> $DIR/wrap-dyn-in-suggestion-issue-120223.rs:23:21
+   |
+LL | fn with_sized<T: Fn() -> &'static (dyn std::fmt::Debug) + ?Sized>() {
+   |               - this type parameter needs to be `Sized`
+LL |     without_sized::<T>(); 
+   |                     ^ doesn't have a size known at compile-time
+   |
+note: required by an implicit `Sized` bound in `without_sized`
+  --> $DIR/wrap-dyn-in-suggestion-issue-120223.rs:27:18
+   |
+LL | fn without_sized<T: Fn() -> &'static dyn std::fmt::Debug>() {}
+   |                  ^ required by the implicit `Sized` requirement on this type parameter in `without_sized`
+help: consider removing the `?Sized` bound to make the type parameter `Sized`
+   |
+LL - fn with_sized<T: Fn() -> &'static (dyn std::fmt::Debug) + ?Sized>() {
+LL + fn with_sized<T: Fn() -> &'static (dyn std::fmt::Debug)>() {
+   |
+help: consider relaxing the implicit `Sized` restriction
+   |
+LL | fn without_sized<T: Fn() -> &'static (dyn std::fmt::Debug) + ?Sized>() {}
+   |                                      +                   ++++++++++
+
 error[E0310]: the parameter type `impl FnOnce(T) -> dyn Future<Output = ()>` may not live long enough
   --> $DIR/wrap-dyn-in-suggestion-issue-120223.rs:8:5
    |
@@ -55,7 +78,7 @@ help: consider restricting type parameters
 LL | pub fn in_ty_param<F: FnOnce() -> &'static (dyn std::fmt::Debug) + Copy>(f: F) {
    |                                            +                   ++++++++
 
-error: aborting due to 3 previous errors; 1 warning emitted
+error: aborting due to 4 previous errors; 1 warning emitted
 
-Some errors have detailed explanations: E0310, E0382.
-For more information about an error, try `rustc --explain E0310`.
+Some errors have detailed explanations: E0277, E0310, E0382.
+For more information about an error, try `rustc --explain E0277`.
